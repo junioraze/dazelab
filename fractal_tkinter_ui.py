@@ -248,6 +248,7 @@ def generate_fractal_image(
 
 class FractalApp(tk.Tk):
 
+
     def _on_tab_changed(self, event):
         # Garante que a imagem do fractal e o gif animado permaneçam visíveis ao alternar abas
         if hasattr(self, '_fractal_img_refs') and self._fractal_img_refs:
@@ -260,8 +261,11 @@ class FractalApp(tk.Tk):
             self.gif_panel.image = self._gif_anim_frames[idx]
 
     def generate_gif(self):
+        # Limpa exibição do GIF anterior ao iniciar novo
         self.gif_panel.config(image='', text='Gerando GIF...', bg='#222', fg='#fff')
         self.gif_panel.image = None
+        if hasattr(self, '_gif_anim_frames'):
+            self._gif_anim_frames.clear()
         print('[DEBUG] Iniciando geração do GIF')
         params = self.get_params()
         num_frames = params['num_frames']
@@ -270,8 +274,10 @@ class FractalApp(tk.Tk):
         def frame_task(i):
             print(f'[DEBUG] Iniciando frame {i+1}/{num_frames}')
             self.after(0, lambda: self.gif_panel.config(text=f'Gerando frame {i+1}/{num_frames}...', image='', bg="#222", fg="#fff"))
-            if params['anim_type'] == 'color':
+            anim = params['anim_type']
+            if anim == 'color':
                 shift = (i / num_frames)
+                print(f'[DEBUG] Frame {i+1}: shift={shift}')
                 img = generate_fractal_image(
                     width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
                     fractal_type=params['fractal'], color_palette_override=params['palette'],
@@ -280,8 +286,9 @@ class FractalApp(tk.Tk):
                     color_shift_override=shift, power=params['power'],
                     bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
                 )
-            elif params['anim_type'] == 'zoom_in':
+            elif anim == 'zoom_in':
                 z = params['zoom'] * (1.05 ** i)
+                print(f'[DEBUG] Frame {i+1}: zoom={z}')
                 img = generate_fractal_image(
                     width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
                     fractal_type=params['fractal'], color_palette_override=params['palette'],
@@ -290,8 +297,9 @@ class FractalApp(tk.Tk):
                     color_shift_override=params['color_shift'], power=params['power'],
                     bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
                 )
-            elif params['anim_type'] == 'zoom_out':
+            elif anim == 'zoom_out':
                 z = params['zoom'] * (0.95 ** i)
+                print(f'[DEBUG] Frame {i+1}: zoom={z}')
                 img = generate_fractal_image(
                     width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
                     fractal_type=params['fractal'], color_palette_override=params['palette'],
@@ -300,9 +308,10 @@ class FractalApp(tk.Tk):
                     color_shift_override=params['color_shift'], power=params['power'],
                     bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
                 )
-            elif params['anim_type'] == 'julia':
+            elif anim == 'julia':
                 angle = 2 * math.pi * (i / num_frames)
                 julia_c = complex(math.cos(angle), math.sin(angle))
+                print(f'[DEBUG] Frame {i+1}: julia_c={julia_c}')
                 img = generate_fractal_image(
                     width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
                     fractal_type='julia', color_palette_override=params['palette'],
@@ -310,6 +319,63 @@ class FractalApp(tk.Tk):
                     zoom=params['zoom'], center=(params['center_x'], params['center_y']),
                     color_shift_override=params['color_shift'], power=params['power'],
                     bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
+                )
+            elif anim == 'rotate':
+                # Rotaciona o fractal em torno do centro
+                angle = 2 * math.pi * (i / num_frames)
+                cx, cy = params['center_x'], params['center_y']
+                # Aplica rotação ao centro
+                r = math.hypot(cx, cy)
+                theta = math.atan2(cy, cx) + angle
+                new_cx = r * math.cos(theta)
+                new_cy = r * math.sin(theta)
+                print(f'[DEBUG] Frame {i+1}: rotate angle={angle:.2f}, center=({new_cx:.3f},{new_cy:.3f})')
+                img = generate_fractal_image(
+                    width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
+                    fractal_type=params['fractal'], color_palette_override=params['palette'],
+                    max_iter=params['iterations'], julia_const=params['julia_const'],
+                    zoom=params['zoom'], center=(new_cx, new_cy),
+                    color_shift_override=params['color_shift'], power=params['power'],
+                    bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
+                )
+            elif anim == 'pan':
+                # Move o centro do fractal em linha reta
+                dx = 1.0 * math.cos(2 * math.pi * (i / num_frames))
+                dy = 1.0 * math.sin(2 * math.pi * (i / num_frames))
+                new_cx = params['center_x'] + dx * 0.5
+                new_cy = params['center_y'] + dy * 0.5
+                print(f'[DEBUG] Frame {i+1}: pan center=({new_cx:.3f},{new_cy:.3f})')
+                img = generate_fractal_image(
+                    width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
+                    fractal_type=params['fractal'], color_palette_override=params['palette'],
+                    max_iter=params['iterations'], julia_const=params['julia_const'],
+                    zoom=params['zoom'], center=(new_cx, new_cy),
+                    color_shift_override=params['color_shift'], power=params['power'],
+                    bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
+                )
+            elif anim == 'pulse':
+                # Zoom pulsante (aproxima e afasta)
+                z = params['zoom'] * (1 + 0.3 * math.sin(2 * math.pi * (i / num_frames)))
+                print(f'[DEBUG] Frame {i+1}: pulse zoom={z}')
+                img = generate_fractal_image(
+                    width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
+                    fractal_type=params['fractal'], color_palette_override=params['palette'],
+                    max_iter=params['iterations'], julia_const=params['julia_const'],
+                    zoom=z, center=(params['center_x'], params['center_y']),
+                    color_shift_override=params['color_shift'], power=params['power'],
+                    bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
+                )
+            elif anim == 'warp':
+                # Distorção ondulatória no parâmetro de transformação
+                warp_mode = 'waves'
+                print(f'[DEBUG] Frame {i+1}: warp transform={warp_mode}')
+                img = generate_fractal_image(
+                    width=params['width'], height=params['height'], pixel_size=int(params['pixel_size']),
+                    fractal_type=params['fractal'], color_palette_override=params['palette'],
+                    max_iter=params['iterations'], julia_const=params['julia_const'],
+                    zoom=params['zoom'], center=(params['center_x'], params['center_y']),
+                    color_shift_override=params['color_shift'], power=params['power'],
+                    bailout=params['bailout'], transform=warp_mode, intensity=params['intensity']
                 )
             else:
                 img = generate_fractal_image(
@@ -320,7 +386,8 @@ class FractalApp(tk.Tk):
                     color_shift_override=params['color_shift'], power=params['power'],
                     bailout=params['bailout'], transform=params['transform'], intensity=params['intensity']
                 )
-            print(f'[DEBUG] Finalizado frame {i+1}/{num_frames}')
+            assert img is not None, f'Frame {i+1} retornou None!'
+            print(f'[DEBUG] Finalizado frame {i+1}/{num_frames} (type={type(img)})')
             self.after(0, lambda: self.gif_panel.config(text=f'Frame {i+1}/{num_frames} pronto!', image='', bg="#222", fg="#fff"))
             return (i, img)
 
@@ -355,7 +422,7 @@ class FractalApp(tk.Tk):
                 if file:
                     frames[0].save(file, save_all=True, append_images=frames[1:], duration=50, loop=0)
                     # Salva JSON com os parâmetros
-                    import json, os
+                    import json, os                                                                                         
                     json_path = os.path.splitext(file)[0] + '.json'
                     # Remove objetos não serializáveis
                     params_serializable = {k: (float(v) if isinstance(v, (int, float)) else str(v)) for k, v in params.items()}
@@ -388,9 +455,11 @@ class FractalApp(tk.Tk):
         self.gif_panel.image = None
         self.status_var.set('Erro ao gerar GIF.')
     def generate_fractal(self):
-        # Fallback visual antes de gerar
+        # Limpa exibição da imagem anterior ao iniciar novo
         self.image_panel.config(image='', text='Gerando fractal...', bg='#222', fg='#fff')
         self.image_panel.image = None
+        if hasattr(self, '_fractal_img_refs'):
+            self._fractal_img_refs.clear()
         print('[DEBUG] Iniciando geração do fractal')
         def worker():
             params = self.get_params()
@@ -527,8 +596,12 @@ class FractalApp(tk.Tk):
         tab_fractal = ttk.Frame(self.notebook)
         self.notebook.add(tab_fractal, text="Fractal")
         small_font = ("Segoe UI", 9)
+        # Só mostra fractais realmente implementados
+        fractal_options = [
+            "mandelbrot", "julia", "burning_ship", "newton", "spider", "magnet", "custom"
+        ]
         for i, (label1, widget1, label2, widget2) in enumerate([
-            ('Tipo de Fractal', ttk.Combobox(tab_fractal, textvariable=self.fractal_params['fractal'], values=["mandelbrot", "julia", "burning_ship", "newton", "spider", "magnet", "custom"], width=10, font=small_font),
+            ('Tipo de Fractal', ttk.Combobox(tab_fractal, textvariable=self.fractal_params['fractal'], values=fractal_options, width=12, font=small_font),
              'Paleta de Cores', ttk.Combobox(tab_fractal, textvariable=self.fractal_params['palette'], values=["default", "blue", "red", "green", "rainbow", "monochrome", "random", "fire", "ice", "cosmic"], width=10, font=small_font)),
             ('Máximo de Iterações', ttk.Spinbox(tab_fractal, from_=10, to=1000, textvariable=self.fractal_params['iterations'], width=7, font=small_font),
              'Zoom', ttk.Entry(tab_fractal, textvariable=self.fractal_params['zoom'], width=8, font=small_font)),
@@ -584,7 +657,9 @@ class FractalApp(tk.Tk):
         tab_gif = ttk.Frame(self.notebook)
         self.notebook.add(tab_gif, text="GIF Animado")
         ttk.Label(tab_gif, text='Tipo de Animação').pack(anchor='w', padx=8, pady=2)
-        ttk.Combobox(tab_gif, textvariable=self.fractal_params['anim_type'], values=["color", "zoom_in", "zoom_out", "julia"], width=15).pack(padx=8, pady=2)
+        ttk.Combobox(tab_gif, textvariable=self.fractal_params['anim_type'], values=[
+            "color", "zoom_in", "zoom_out", "julia", "rotate", "pan", "pulse", "warp"
+        ], width=15).pack(padx=8, pady=2)
         ttk.Label(tab_gif, text='Frames do GIF').pack(anchor='w', padx=8, pady=2)
         ttk.Spinbox(tab_gif, from_=5, to=120, textvariable=self.fractal_params['num_frames'], width=10).pack(padx=8, pady=2)
         ttk.Label(tab_gif, text='Nome do GIF').pack(anchor='w', padx=8, pady=2)
@@ -604,7 +679,6 @@ class FractalApp(tk.Tk):
         ttk.Button(actions_frame, text='Salvar Imagem', command=self.save_image, width=18).pack(side=tk.LEFT, padx=(8, 0))
 
 
-# --- Entry point para rodar a aplicação ---
 def main():
     app = FractalApp()
     app.mainloop()
