@@ -60,10 +60,20 @@ PALETTE_REGISTRY["rainbow"] = rainbow_palette
 
 
 # Fire: tons de vermelho, laranja e amarelo, brilho crescente
+
+# Nova fire_palette: gradiente de vermelho profundo, laranja, amarelo, branco, com "fagulhas" e variação de saturação
 def fire_palette(t, intensity=1.0, brightness=1.0, contrast=1.0, saturation=1.0, gamma=1.0, hue_shift=0.0):
-    h = 0.05 + 0.08 * (1-t)  # vermelho para amarelo
-    s = 1.0
-    v = 0.5 + 0.5 * t
+    # Fagulhas: pequenas explosões de branco/amarelo
+    spark = 0.0
+    if t > 0.85:
+        spark = min(1.0, (t-0.85)*8)
+    h = 0.04 + 0.12 * (1-t)  # vermelho escuro para amarelo
+    s = 0.8 + 0.2 * (1-t) + 0.2 * spark
+    v = 0.4 + 0.6 * t + 0.5 * spark
+    # Pequena oscilação para "chama viva"
+    h += 0.01 * math.sin(12*math.pi*t)
+    s = min(1.0, s + 0.1 * math.sin(8*math.pi*t))
+    v = min(1.0, v + 0.1 * math.cos(10*math.pi*t))
     r, g, b = colorsys.hsv_to_rgb(h, s, v)
     rgb = (r*255*intensity, g*255*intensity, b*255*intensity)
     return calibrate_color(rgb, brightness, contrast, saturation, gamma, hue_shift)
@@ -94,10 +104,19 @@ PALETTE_REGISTRY["membrane"] = membrane_palette
 
 
 # Vertex: tons de verde, roxo e azul, padrão geométrico
+
+# Nova vertex_palette: gradiente geométrico, tons de verde, azul, roxo, com "picos" e cortes abruptos
 def vertex_palette(t, intensity=1.0, brightness=1.0, contrast=1.0, saturation=1.0, gamma=1.0, hue_shift=0.0):
-    h = 0.3 + 0.2 * math.sin(12 * math.pi * t)
-    s = 0.7 + 0.3 * math.sin(6 * math.pi * t)
-    v = 0.6 + 0.4 * abs(math.sin(8 * math.pi * t))
+    # Efeito "facetado": cortes abruptos de cor
+    facet = int(t*6) % 2
+    h = 0.3 + 0.25 * math.sin(10 * math.pi * t + facet*math.pi)
+    s = 0.6 + 0.4 * abs(math.sin(7 * math.pi * t))
+    v = 0.5 + 0.5 * abs(math.cos(9 * math.pi * t + facet*math.pi/2))
+    # Pico de cor a cada "vértice"
+    if facet == 1:
+        h += 0.15
+        s = min(1.0, s + 0.2)
+        v = min(1.0, v + 0.2)
     r, g, b = colorsys.hsv_to_rgb(h % 1.0, max(0, min(1, s)), max(0, min(1, v)))
     rgb = (r*255*intensity, g*255*intensity, b*255*intensity)
     return calibrate_color(rgb, brightness, contrast, saturation, gamma, hue_shift)
@@ -159,6 +178,35 @@ def tecnomagia_palette(t, intensity=1.0, brightness=1.0, contrast=1.0, saturatio
 PALETTE_REGISTRY["tecnomagia"] = tecnomagia_palette
 
 # ... (adicione as demais paletas do seu arquivo, seguindo o padrão acima)
+
+# Plasma: gradiente psicodélico, magenta, azul, verde, amarelo
+def plasma_palette(t, intensity=1.0, brightness=1.0, contrast=1.0, saturation=1.0, gamma=1.0, hue_shift=0.0):
+    h = 0.7 + 0.3 * math.sin(8 * math.pi * t)
+    s = 0.8 + 0.2 * math.cos(12 * math.pi * t)
+    v = 0.6 + 0.4 * math.sin(10 * math.pi * t)
+    r, g, b = colorsys.hsv_to_rgb(h % 1.0, max(0, min(1, s)), max(0, min(1, v)))
+    rgb = (r*255*intensity, g*255*intensity, b*255*intensity)
+    return calibrate_color(rgb, brightness, contrast, saturation, gamma, hue_shift)
+PALETTE_REGISTRY["plasma"] = plasma_palette
+
+# Cyberpunk: azul neon, magenta, verde-limão, preto
+def cyberpunk_palette(t, intensity=1.0, brightness=1.0, contrast=1.0, saturation=1.0, gamma=1.0, hue_shift=0.0):
+    if t < 0.33:
+        h = 0.55  # azul neon
+        s = 1.0
+        v = 0.8 + 0.2 * t
+    elif t < 0.66:
+        h = 0.83  # magenta
+        s = 1.0
+        v = 0.7 + 0.3 * (t-0.33)
+    else:
+        h = 0.28  # verde-limão
+        s = 0.9
+        v = 0.6 + 0.4 * (t-0.66)
+    r, g, b = colorsys.hsv_to_rgb(h % 1.0, s, v)
+    rgb = (r*255*intensity, g*255*intensity, b*255*intensity)
+    return calibrate_color(rgb, brightness, contrast, saturation, gamma, hue_shift)
+PALETTE_REGISTRY["cyberpunk"] = cyberpunk_palette
 
 def get_palette_types():
     return list(PALETTE_REGISTRY.keys())

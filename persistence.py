@@ -1,3 +1,14 @@
+# Atualiza apenas os atributos de um ser (não altera params/img/gif)
+def update_ser_atributos(ser_id, novos):
+    init_db()
+    con = duckdb.connect(DB_PATH)
+    con.execute('''
+        UPDATE seres SET nome=?, descricao=?, tipo1=?, tipo2=?, vida=?, poder=?, resistencia=?, sabedoria=?, espirito=?, impeto=? WHERE id=?
+    ''', [
+        novos['nome'], novos['descricao'], novos['tipo1'], novos['tipo2'],
+        int(novos['vida']), int(novos['poder']), int(novos['resistencia']), int(novos['sabedoria']), int(novos['espirito']), int(novos['impeto']), ser_id
+    ])
+    con.close()
 # Deleta um ser pelo id
 def delete_ser(ser_id):
     init_db()
@@ -71,12 +82,29 @@ def list_seres():
     import pickle
     init_db()
     con = duckdb.connect(DB_PATH)
-    rows = con.execute('SELECT id, nome, descricao, tipo1, tipo2, vida, poder, resistencia, sabedoria, espirito, impeto FROM seres').fetchall()
+    rows = con.execute('SELECT id, nome, descricao, tipo1, tipo2, vida, poder, resistencia, sabedoria, espirito, impeto, fractal_params, img, gif FROM seres').fetchall()
     seres = []
     for row in rows:
+        # params, img, gif podem ser None
+        params = None
+        img = None
+        gif_bytes = None
+        try:
+            if row[11] is not None:
+                params = pickle.loads(row[11])
+        except Exception:
+            params = None
+        try:
+            if row[12] is not None:
+                img = Image.open(io.BytesIO(row[12]))
+        except Exception:
+            img = None
+        if row[13] is not None:
+            gif_bytes = row[13]
         seres.append({
             'id': row[0], 'nome': row[1], 'descricao': row[2], 'tipo1': row[3], 'tipo2': row[4],
-            'vida': row[5], 'poder': row[6], 'resistencia': row[7], 'sabedoria': row[8], 'espirito': row[9], 'impeto': row[10]
+            'vida': row[5], 'poder': row[6], 'resistencia': row[7], 'sabedoria': row[8], 'espirito': row[9], 'impeto': row[10],
+            'params': params, 'img': img, 'gif_bytes': gif_bytes
         })
     con.close()
     return seres

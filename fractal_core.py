@@ -1,3 +1,4 @@
+
 # fractal_core.py
 """
 Módulo: fractal_core
@@ -154,6 +155,22 @@ def nature_fractal(c, max_iterations=100, power=2.0, bailout=2.0, **kwargs):
         z += 0.18 * complex(math.sin(z.real * 3 + i * 0.1), math.cos(z.imag * 3 + i * 0.1))
     return max_iterations
 FRACTAL_REGISTRY["nature"] = nature_fractal
+
+
+# Fractal espiralado: spiral_fractal
+def spiral_fractal(c, max_iterations=100, power=2.0, bailout=2.0, **kwargs):
+    # Spiral: fractal com padrão espiralado, mistura rotação e crescimento
+    import cmath
+    z = c
+    for i in range(max_iterations):
+        if abs(z) > bailout:
+            return i
+        angle = 0.3 * i + abs(z)
+        z = (z**power + c) * cmath.exp(1j * angle)
+        z += 0.1 * cmath.exp(1j * (z.real + z.imag))
+    return max_iterations
+
+FRACTAL_REGISTRY["spiral"] = spiral_fractal
 
 # Para obter a lista de fractais disponíveis:
 def get_fractal_types():
